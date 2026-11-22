@@ -16,8 +16,14 @@ Robot AI dùng ESP32-S3 N16R8: xích N20 (TB6612), mặt ST7789 1.54", trò chuy
 | 6 | `phase6_behaviors` | Hành vi, WS2812, SG90 |
 | 7 | `phase7_integration` | Ghép toàn bộ |
 
-## Bảng đấu dây
-Xem và điền GPIO trong [`config/pins.h`](config/pins.h).
+## Cài đặt Arduino IDE
+Đặt **Sketchbook location** = thư mục repo này, để IDE tự thấy thư viện dùng chung trong `libraries/`:
+- `libraries/RobotConfig` — bảng chân [`pins.h`](libraries/RobotConfig/src/pins.h) và bí mật.
+- `libraries/RobotCore` — động cơ, IMU, pin, cảm biến mép, web điều khiển.
+
+Chi tiết và sơ đồ nối dây: [`phase1_movement/README.md`](phase1_movement/README.md).
 
 ## Bí mật (Wi-Fi, Gemini key)
-Copy `config/secrets.example.h` thành `config/secrets.h` rồi điền. File `secrets.h` không bao giờ được commit.
+Copy `libraries/RobotConfig/src/secrets.example.h` thành `secrets.h` cùng thư mục rồi điền. File `secrets.h` không bao giờ được commit.
+
+GitHub Actions tự biên dịch mọi sketch mỗi lần push.
