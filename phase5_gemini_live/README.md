@@ -31,3 +31,27 @@ Gemini hay báo 503 giờ cao điểm. Sketch thử lần lượt các model Gem
 | `HTTP -1` / `-11` | Mất mạng hoặc quá thời gian chờ |
 
 Ghi chú: bản thử dùng `setInsecure()` (không kiểm chứng chỉ máy chủ) cho đơn giản; bản Gemini Live sau sẽ gắn chứng chỉ gốc.
+
+## Bước 5.1: `p5_1_gemini_live` — thử Gemini Live (WebSocket) bằng chữ
+Gemini Live là kiểu nói chuyện "trực tiếp": giữ một kết nối WebSocket mở, gửi câu nói lên và nhận lời đáp chảy về từng đoạn. Robot thật sẽ gửi tiếng từ micro và phát tiếng ra loa (giai đoạn 4–5). Bước này chỉ thử phần kết nối: bạn gõ chữ, Gemini trả lời bằng **giọng nói**, sketch in ra **bản chép lời** (`outputTranscription`) và đếm số byte âm thanh nhận được (chưa phát).
+
+- Model thử lần lượt trong `LIVE_MODELS`: `gemini-3.1-flash-live-preview` (Gemini 3.1 Flash Live), rồi `gemini-3.8-live`.
+- Giữ kết nối cho cả cuộc trò chuyện nên Gemini nhớ câu trước. Máy chủ cắt kết nối sau ~10 phút, sketch tự nối lại ở câu hỏi sau (mất trí nhớ cuộc trò chuyện).
+- `LIVE_TEXT_MODE 1` = xin trả chữ thẳng (TEXT) thay vì giọng nói; model Live mới có thể không nhận, khi đó để 0.
+
+### Thử nhanh trên trình duyệt (không cần ESP32)
+1. Vào https://aistudio.google.com/live (menu trái **Stream**/**Live**), đăng nhập.
+2. Chọn model **Gemini 3.1 Flash Live** ở khung bên phải, bấm micro và nói tiếng Việt. Nghe được trả lời là key/tài khoản dùng được Live.
+
+### Chạy trên Wokwi (VS Code)
+1. Mở `wokwi/p5_1_gemini_live/p5_1_gemini_live.ino`, thay `DAN-KEY-VAO-DAY` bằng key (đừng commit file có key).
+2. Biên dịch cho ESP32-S3 (giống bước 5.0) để có file trong `build/esp32.esp32.esp32s3/`, rồi bấm **Wokwi: Start Simulator** với `wokwi/p5_1_gemini_live/wokwi.toml`.
+3. Đợi `Đã vào Gemini Live`, gõ câu hỏi rồi Enter. Lời đáp hiện dần sau `Robot:`.
+
+### Lỗi thường gặp
+| Thấy | Nghĩa |
+|---|---|
+| `Máy chủ từ chối: 1007 API key not valid` | Key sai / chưa dán |
+| `1011 ...` | Hết hạn mức hoặc quá tải (gói miễn phí hay gặp với model preview). Đợi vài phút, xem **Rate limits** trong AI Studio |
+| `1008 ... not found` / `not supported` | Tên model đã đổi, sửa `LIVE_MODELS` |
+| `Bắt tay WebSocket lỗi` | Mạng chặn hoặc sai địa chỉ |
