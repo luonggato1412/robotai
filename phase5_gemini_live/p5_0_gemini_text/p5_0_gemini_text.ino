@@ -7,20 +7,25 @@
 #include "RobotSecrets.h"  // WIFI_SSID, WIFI_PASSWORD, GEMINI_API_KEY
 
 // Đổi model ở đây nếu Google ngừng hỗ trợ (xem https://ai.google.dev/gemini-api/docs/models)
-// Thử lần lượt từng model; model nào quá tải (503) / hết lượt (429) thì chuyển model sau.
-// Hết danh sách thì đợi rồi thử lại cả vòng (tối đa GEMINI_ROUNDS vòng).
-// Bản Lite đứng đầu: nhanh, ít bị nghẽn, đủ cho robot trò chuyện.
-static const char *GEMINI_MODELS[] = {"gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.5-flash"};
-#define GEMINI_ROUNDS 3
-
-// Dự phòng: nhà cung cấp AI thứ hai, chuẩn OpenAI (/chat/completions). Mặc định Groq (có gói miễn phí).
-// Để trống BACKUP_AI_KEY = tắt dự phòng. Muốn dùng OpenAI/OpenRouter... thì đổi URL + model.
+// AI dự phòng: nhà cung cấp thứ hai, chuẩn OpenAI (/chat/completions). Mặc định Groq (có gói miễn phí).
+// Để trống BACKUP_AI_KEY = tắt dự phòng. Muốn dùng OpenAI/OpenRouter... thì đổi URL + tên model bên dưới.
 #ifndef BACKUP_AI_URL
-#define BACKUP_AI_URL   "https://api.groq.com/openai/v1/chat/completions"
+#define BACKUP_AI_URL "https://api.groq.com/openai/v1/chat/completions"
 #endif
-#ifndef BACKUP_AI_MODEL
-#define BACKUP_AI_MODEL "llama-3.3-70b-versatile"  // danh sách: https://console.groq.com/docs/models
-#endif
+
+// Thứ tự hỏi: Gemini và dự phòng xen kẽ. Model nào quá tải (503) / hết lượt (429) / không có (404)
+// thì chuyển model sau; hết danh sách thì đợi rồi thử lại cả vòng (tối đa AI_ROUNDS vòng).
+// Tên model Groq gói miễn phí: https://console.groq.com/docs/models (Llama ở đó là gói Enterprise).
+struct AiModel { bool backup; const char *name; };
+static const AiModel AI_MODELS[] = {
+    {false, "gemini-flash-lite-latest"},  // nhanh, đủ cho robot trò chuyện
+    {true,  "openai/gpt-oss-20b"},        // Groq
+    {false, "gemini-flash-latest"},
+    {true,  "openai/gpt-oss-120b"},       // Groq
+    {false, "gemini-3.5-flash"},
+};
+#define AI_ROUNDS 3
+#define AI_TIMEOUT_MS 15000  // chờ lâu hơn thường là máy chủ đang nghẽn, chuyển model khác cho nhanh
 static const char *PERSONA =
     "Bạn là Chú xe tăng tí hon, một robot nhỏ vui tính. Trả lời bằng tiếng Việt, ngắn gọn 1-3 câu.";
 
@@ -76,7 +81,7 @@ String askGemini(const String &question, const char *model) {
   WiFiClientSecure tls;
   tls.setInsecure();  // bản thử: không kiểm chứng chỉ (đơn giản, chạy được cả trên Wokwi)
   HTTPClient http;
-  http.setTimeout(30000);
+  http.setTimeout(AI_TIMEOUT_MS);
   if (!http.begin(tls, url)) return "[Lỗi] Không mở được kết nối";
   http.addHeader("Content-Type", "application/json");
   http.addHeader("x-goog-api-key", GEMINI_API_KEY);
@@ -87,10 +92,10 @@ String askGemini(const String &question, const char *model) {
   String body = http.getString();
   http.end();
   Serial.printf("(%s: HTTP %d, %lu ms)\n", model, code, (unsigned long)(millis() - t0));
-  if (code == 503 || code == 429 || code == 500) return "";
+  if (code == 503 || code == 429 || code == 500 || code < 0) return "";
   if (code != 200) {
     if (code == 400 || code == 403) Serial.println("Kiểm tra lại GEMINI_API_KEY.");
-    if (code == 404) Serial.println("Model không còn, sửa danh sách GEMINI_MODELS.");
+    if (code == 404) Serial.println("Model không còn, sửa danh sách AI_MODELS.");
     return "[Lỗi] " + body.substring(0, 400);
   }
   String text = extractText(body);
@@ -98,24 +103,26 @@ String askGemini(const String &question, const char *model) {
 }
 
 // Gọi AI dự phòng (chuẩn OpenAI). Trả "" nếu lỗi.
-String askBackup(const String &question) {
+String askBackup(const String &question, const char *model) {
   WiFiClientSecure tls;
   tls.setInsecure();
   HTTPClient http;
-  http.setTimeout(30000);
+  http.setTimeout(AI_TIMEOUT_MS);
   if (!http.begin(tls, BACKUP_AI_URL)) return "";
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Authorization", String("Bearer ") + BACKUP_AI_KEY);
-  String req = String("{\"model\":\"" BACKUP_AI_MODEL "\",\"max_tokens\":300,\"messages\":[{\"role\":\"system\",\"content\":") +
+  // gpt-oss là model "suy nghĩ": giảm suy nghĩ + ẩn phần suy nghĩ để chỉ còn câu trả lời.
+  String req = String("{\"model\":\"") + model + "\",\"max_tokens\":1024,\"reasoning_effort\":\"low\",\"include_reasoning\":false," +
+               "\"messages\":[{\"role\":\"system\",\"content\":" +
                jsonEscape(PERSONA) + "},{\"role\":\"user\",\"content\":" + jsonEscape(question) + "}]}";
   uint32_t t0 = millis();
   int code = http.POST(req);
   String body = http.getString();
   http.end();
-  Serial.printf("(dự phòng %s: HTTP %d, %lu ms)\n", BACKUP_AI_MODEL, code, (unsigned long)(millis() - t0));
+  Serial.printf("(dự phòng %s: HTTP %d, %lu ms)\n", model, code, (unsigned long)(millis() - t0));
   if (code != 200) {
     if (code == 401) Serial.println("Kiểm tra lại BACKUP_AI_KEY.");
-    if (code == 404 || code == 400) Serial.println("Kiểm tra BACKUP_AI_MODEL / BACKUP_AI_URL: " + body.substring(0, 200));
+    if (code == 404 || code == 400) Serial.println("Model dự phòng không dùng được, sửa AI_MODELS: " + body.substring(0, 200));
     return "";
   }
   return extractText(body, "\"content\"");
@@ -136,7 +143,7 @@ void setup() {
     Serial.println("Chưa điền GEMINI_API_KEY! Lấy key miễn phí tại https://aistudio.google.com/apikey");
     return;
   }
-  Serial.println(backupEnabled() ? "AI dự phòng: BẬT (" BACKUP_AI_MODEL ")" : "AI dự phòng: tắt (chưa có BACKUP_AI_KEY)");
+  Serial.println(backupEnabled() ? "AI dự phòng: BẬT" : "AI dự phòng: tắt (chưa có BACKUP_AI_KEY)");
   Serial.println("Gõ câu hỏi rồi Enter. Ví dụ: Xin chào, bạn là ai?");
 }
 
@@ -147,20 +154,17 @@ void loop() {
   if (!q.length()) return;
   Serial.println("Bạn: " + q);
   String a;
-  for (int round = 0; round < GEMINI_ROUNDS && !a.length(); round++) {
+  for (int round = 0; round < AI_ROUNDS && !a.length(); round++) {
     if (round) {
       Serial.printf("Mọi model đang bận, đợi %d s rồi thử lại...\n", 3 * round);
       delay(3000 * round);
     }
-    for (const char *m : GEMINI_MODELS) {
-      a = askGemini(q, m);
+    for (const AiModel &m : AI_MODELS) {
+      if (m.backup && !backupEnabled()) continue;
+      a = m.backup ? askBackup(q, m.name) : askGemini(q, m.name);
       if (a.length()) break;
     }
-    if (!a.length() && backupEnabled()) {
-      Serial.println("Gemini bận, hỏi AI dự phòng...");
-      a = askBackup(q);
-    }
   }
-  if (!a.length()) a = "[Lỗi] Gemini và AI dự phòng đều đang bận, thử lại sau ít phút.";
+  if (!a.length()) a = "[Lỗi] Mọi AI đều đang bận, thử lại sau ít phút.";
   Serial.println("Robot: " + a + "\n");
 }
