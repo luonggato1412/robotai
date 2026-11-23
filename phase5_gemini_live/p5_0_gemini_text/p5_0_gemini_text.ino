@@ -7,8 +7,10 @@
 #include "RobotSecrets.h"  // WIFI_SSID, WIFI_PASSWORD, GEMINI_API_KEY
 
 // Đổi model ở đây nếu Google ngừng hỗ trợ (xem https://ai.google.dev/gemini-api/docs/models)
-#define GEMINI_MODEL "gemini-flash-latest"
-#define GEMINI_URL "https://generativelanguage.googleapis.com/v1beta/models/" GEMINI_MODEL ":generateContent"
+// Model chính quá tải (HTTP 503) thì tự hỏi lại bằng model dự phòng (bản Lite, ít bị nghẽn hơn).
+#define GEMINI_MODEL          "gemini-flash-latest"
+#define GEMINI_MODEL_FALLBACK "gemini-flash-lite-latest"
+#define GEMINI_URL(m) "https://generativelanguage.googleapis.com/v1beta/models/" m ":generateContent"
 static const char *PERSONA =
     "Bạn là Chú xe tăng tí hon, một robot nhỏ vui tính. Trả lời bằng tiếng Việt, ngắn gọn 1-3 câu.";
 
@@ -58,12 +60,12 @@ String extractText(const String &body) {
   return out;
 }
 
-String askGemini(const String &question) {
+String askGemini(const String &question, const char *url) {
   WiFiClientSecure tls;
   tls.setInsecure();  // bản thử: không kiểm chứng chỉ (đơn giản, chạy được cả trên Wokwi)
   HTTPClient http;
   http.setTimeout(30000);
-  if (!http.begin(tls, GEMINI_URL)) return "[Lỗi] Không mở được kết nối";
+  if (!http.begin(tls, url)) return "[Lỗi] Không mở được kết nối";
   http.addHeader("Content-Type", "application/json");
   http.addHeader("x-goog-api-key", GEMINI_API_KEY);
   String req = String("{\"system_instruction\":{\"parts\":[{\"text\":") + jsonEscape(PERSONA) +
@@ -73,6 +75,7 @@ String askGemini(const String &question) {
   String body = http.getString();
   http.end();
   Serial.printf("(HTTP %d, %lu ms)\n", code, (unsigned long)(millis() - t0));
+  if (code == 503) return "";  // quá tải -> để loop() thử model dự phòng
   if (code != 200) {
     if (code == 400 || code == 403) Serial.println("Kiểm tra lại GEMINI_API_KEY.");
     if (code == 404) Serial.println("Model không còn, đổi GEMINI_MODEL.");
@@ -105,5 +108,11 @@ void loop() {
   q.trim();
   if (!q.length()) return;
   Serial.println("Bạn: " + q);
-  Serial.println("Robot: " + askGemini(q) + "\n");
+  String a = askGemini(q, GEMINI_URL(GEMINI_MODEL));
+  if (!a.length()) {
+    Serial.println("Model chính đang quá tải, thử " GEMINI_MODEL_FALLBACK "...");
+    a = askGemini(q, GEMINI_URL(GEMINI_MODEL_FALLBACK));
+    if (!a.length()) a = "[Lỗi] Gemini đang quá tải (HTTP 503), thử lại sau ít phút.";
+  }
+  Serial.println("Robot: " + a + "\n");
 }
