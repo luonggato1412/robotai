@@ -53,7 +53,9 @@ def build_sketch(text):
 NET_SECRETS = """// Wokwi: Wi-Fi gia lap (khong mat khau). DAN KEY Gemini cua ban vao dong duoi (dung luu du an cong khai!)
 #define WIFI_SSID      "Wokwi-GUEST"
 #define WIFI_PASSWORD  ""
-#define GEMINI_API_KEY "DAN-KEY-VAO-DAY"\n"""
+#define GEMINI_API_KEY "DAN-KEY-VAO-DAY"
+// (Tuy chon) AI du phong khi Gemini qua tai: key Groq mien phi tai https://console.groq.com/keys
+#define BACKUP_AI_KEY  "DAN-KEY-GROQ-VAO-DAY"\n"""
 NET_DIAGRAM = """{
   "version": 1,
   "author": "robotai",

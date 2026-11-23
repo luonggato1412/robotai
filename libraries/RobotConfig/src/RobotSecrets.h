@@ -12,3 +12,6 @@
 #ifndef AP_PASSWORD
 #define AP_PASSWORD "xetang123"
 #endif
+#ifndef BACKUP_AI_KEY
+#define BACKUP_AI_KEY ""  // AI dự phòng (Groq...), để trống = tắt
+#endif

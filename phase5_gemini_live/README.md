@@ -8,6 +8,12 @@ ESP32 gửi câu hỏi (gõ ở Serial Monitor) lên Gemini qua HTTPS và in câ
 2. Bấm **Create API key** (chọn hoặc tạo project bất kỳ) → copy chuỗi bắt đầu bằng `AIza…`.
 3. Key là bí mật: không dán vào file được commit, không chia sẻ dự án Wokwi công khai có key.
 
+### (Tuỳ chọn) AI dự phòng khi Gemini quá tải
+Gemini hay báo 503 giờ cao điểm. Sketch thử lần lượt các model Gemini, vẫn bận thì hỏi một nhà cung cấp khác theo chuẩn OpenAI (mặc định **Groq**, miễn phí).
+1. Vào https://console.groq.com/keys, đăng nhập (Google được), bấm **Create API Key**, copy chuỗi `gsk_…`.
+2. Dán vào `BACKUP_AI_KEY` (Wokwi: thay `DAN-KEY-GROQ-VAO-DAY`; xe thật: trong `secrets.h`). Để trống = tắt dự phòng.
+3. Khi chạy sẽ thấy `AI dự phòng: BẬT`. Muốn dùng OpenAI/OpenRouter thì sửa `BACKUP_AI_URL` + `BACKUP_AI_MODEL` trong sketch.
+
 ### Chạy trên Wokwi
 1. Dự án ESP32-S3 mới trên wokwi.com, dán `wokwi/p5_0_gemini_text/diagram.json` và `p5_0_gemini_text.ino` (không cần `robot_lib.h`).
 2. Thay `DAN-KEY-VAO-DAY` ở dòng `#define GEMINI_API_KEY` bằng key của bạn.
