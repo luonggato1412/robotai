@@ -31,6 +31,7 @@ Mẹo: `diagram.json` và `robot_lib.h` giống nhau ở mọi bước, nên là
 | `p1_5_imu` | In yaw/pitch/roll; gõ `g` và chỉnh gyro Z → LED tốc độ 2 bên lệch nhau để bù |
 | `p1_6_battery` | Xoay biến trở GPIO1, xem V và % |
 | `p1_7_web_drive` | Vào Wi-Fi `Wokwi-GUEST`, in IP. Lái bằng Serial: `f b l r s`, `a` (Tay/Tự động), `+ -` |
+| `p5_0_gemini_text` | Hỏi Gemini qua Serial. Chỉ cần `diagram.json` + `.ino` của thư mục này, dán API key vào dòng `GEMINI_API_KEY`. Xem `phase5_gemini_live/README.md` |
 | `phase1_robot` | Như trên, mỗi giây in trạng thái. Thử `a` (tự động) rồi xoay biến trở / gạt công tắc / chỉnh MPU6050 |
 
 Lưu ý:
@@ -39,7 +40,7 @@ Lưu ý:
 - Phần chỉ chạy giả lập nằm trong `#ifdef ROBOT_SIM`, nạp lên xe thật bằng `phase1_movement` như cũ.
 
 ## Khi sửa code
-Các file trong `wokwi/` là **tự sinh**. Sửa trong `phase1_movement/` hoặc `libraries/`, rồi chạy:
+Các file trong `wokwi/` là **tự sinh**. Sửa trong `phase1_movement/`, `phase5_gemini_live/` hoặc `libraries/`, rồi chạy:
 ```
 python3 tools/wokwi_pack.py
 ```

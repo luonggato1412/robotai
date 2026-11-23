@@ -12,6 +12,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 TPL = ROOT / "tools" / "wokwi"
 OUT = ROOT / "wokwi"
 SRC = ROOT / "phase1_movement"
+NET = ROOT / "phase5_gemini_live"  # sketch chi can Wi-Fi: 1 file, khong can robot_lib.h
 CFG = ROOT / "libraries" / "RobotConfig" / "src"
 CORE = ROOT / "libraries" / "RobotCore" / "src"
 
@@ -49,11 +50,30 @@ def build_sketch(text):
     return HEADER + "\n".join(lines) + "\n"
 
 
-def toml(name):
+NET_SECRETS = """// Wokwi: Wi-Fi gia lap (khong mat khau). DAN KEY Gemini cua ban vao dong duoi (dung luu du an cong khai!)
+#define WIFI_SSID      "Wokwi-GUEST"
+#define WIFI_PASSWORD  ""
+#define GEMINI_API_KEY "DAN-KEY-VAO-DAY"\n"""
+NET_DIAGRAM = """{
+  "version": 1,
+  "author": "robotai",
+  "editor": "wokwi",
+  "parts": [ { "type": "board-esp32-s3-devkitc-1", "id": "esp", "top": 0, "left": 0, "attrs": {} } ],
+  "connections": [ [ "esp:TX", "$serialMonitor:RX", "", [] ], [ "esp:RX", "$serialMonitor:TX", "", [] ] ]
+}
+"""
+
+
+def build_net_sketch(text):
+    inc = '#include "RobotSecrets.h"'
+    return HEADER + "\n".join(NET_SECRETS.rstrip() if l.startswith(inc) else l for l in text.splitlines()) + "\n"
+
+
+def toml(name, forward=True):
     b = f"build/esp32.esp32.esp32s3/{name}.ino"
-    return (f'[wokwi]\nversion = 1\nfirmware = "{b}.merged.bin"\nelf = "{b}.elf"\n\n'
-            '# Mo trang web lai xe: http://localhost:8180\n'
-            '[[net.forward]]\nfrom = "localhost:8180"\nto = "target:80"\n')
+    return (f'[wokwi]\nversion = 1\nfirmware = "{b}.merged.bin"\nelf = "{b}.elf"\n'
+            + ('\n# Mo trang web lai xe: http://localhost:8180\n'
+               '[[net.forward]]\nfrom = "localhost:8180"\nto = "target:80"\n' if forward else ''))
 
 
 def main():
@@ -66,6 +86,11 @@ def main():
         files[d / "robot_lib.h"] = lib
         files[d / "diagram.json"] = diagram
         files[d / "wokwi.toml"] = toml(ino.parent.name)
+    for ino in sorted(NET.glob("*/*.ino")):
+        d = OUT / ino.parent.name
+        files[d / ino.name] = build_net_sketch(ino.read_text(encoding="utf-8"))
+        files[d / "diagram.json"] = NET_DIAGRAM
+        files[d / "wokwi.toml"] = toml(ino.parent.name, forward=False)
     stale = [p for p, t in files.items() if not p.exists() or p.read_text(encoding="utf-8") != t]
     if check:
         if stale:

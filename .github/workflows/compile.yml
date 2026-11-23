@@ -22,5 +22,6 @@ jobs:
             - source-path: libraries/RobotCore
           sketch-paths: |
             - phase1_movement
+            - phase5_gemini_live
             - wokwi
           enable-warnings-report: true
