@@ -7,6 +7,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Kiem tra wokwi/ da cap nhat
+        run: python3 tools/wokwi_pack.py --check
       - uses: arduino/compile-sketches@v1
         with:
           fqbn: esp32:esp32:esp32s3:PSRAM=opi,FlashSize=16M,CDCOnBoot=cdc
@@ -20,4 +22,5 @@ jobs:
             - source-path: libraries/RobotCore
           sketch-paths: |
             - phase1_movement
+            - wokwi
           enable-warnings-report: true

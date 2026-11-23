@@ -80,4 +80,32 @@ String RobotWeb::begin(RobotWebState &st) {
   return ip;
 }
 
-void RobotWeb::handle() { server.handleClient(); }
+#ifdef ROBOT_SIM
+// Chỉ dùng khi chạy giả lập Wokwi (wokwi/): lái bằng Serial Monitor vì Wokwi miễn phí không mở được trang web.
+// f b l r s = lái, a = đổi Tay/Tự động, + - = tốc độ. Mỗi giây in trạng thái.
+static char simCmd = 's';
+static void simSerial() {
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c && strchr("fblrs", c)) simCmd = c;
+    else if (c == 'a') { S->autoMode = !S->autoMode; simCmd = 's'; }
+    else if (c == '+') S->speed = min(255, S->speed + 20);
+    else if (c == '-') S->speed = max(60, S->speed - 20);
+    else continue;
+    Serial.printf("lenh %c | %s | toc do %d\n", c, S->autoMode ? "TU DONG" : "TAY", S->speed);
+  }
+  if (simCmd != 's') { S->cmd = simCmd; S->lastCmdMs = millis(); }
+  static uint32_t last = 0;
+  if (millis() - last > 1000) {
+    last = millis();
+    Serial.printf("[%s] vat can %d mm | mep %c%c | %s| pin %.2f V %d%%\n", S->status, S->distMm,
+                  S->edgeL ? 'T' : '-', S->edgeR ? 'P' : '-', S->lifted ? "BI NHAC " : "", S->battV, S->battPct);
+  }
+}
+#endif
+void RobotWeb::handle() {
+  server.handleClient();
+#ifdef ROBOT_SIM
+  simSerial();
+#endif
+}

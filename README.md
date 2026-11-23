@@ -23,6 +23,8 @@ Robot AI dùng ESP32-S3 N16R8: xích N20 (TB6612), mặt ST7789 1.54", trò chuy
 
 Chi tiết và sơ đồ nối dây: [`phase1_movement/README.md`](phase1_movement/README.md).
 
+Chưa có phần cứng? Chạy thử Phase 1 trên trình duyệt bằng Wokwi: [`wokwi/README.md`](wokwi/README.md).
+
 ## Bí mật (Wi-Fi, Gemini key)
 Copy `libraries/RobotConfig/src/secrets.example.h` thành `secrets.h` cùng thư mục rồi điền. File `secrets.h` không bao giờ được commit.
 
