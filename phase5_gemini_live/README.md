@@ -35,7 +35,7 @@ Ghi chú: bản thử dùng `setInsecure()` (không kiểm chứng chỉ máy ch
 ## Bước 5.1: `p5_1_gemini_live` — thử Gemini Live (WebSocket) bằng chữ
 Gemini Live là kiểu nói chuyện "trực tiếp": giữ một kết nối WebSocket mở, gửi câu nói lên và nhận lời đáp chảy về từng đoạn. Robot thật sẽ gửi tiếng từ micro và phát tiếng ra loa (giai đoạn 4–5). Bước này chỉ thử phần kết nối: bạn gõ chữ, Gemini trả lời bằng **giọng nói**, sketch in ra **bản chép lời** (`outputTranscription`) và đếm số byte âm thanh nhận được (chưa phát).
 
-- Model thử lần lượt trong `LIVE_MODELS`: `gemini-3.1-flash-live-preview` (Gemini 3.1 Flash Live), rồi `gemini-3.8-live`.
+- Model thử lần lượt trong `LIVE_MODELS`: `gemini-3.1-flash-live-preview` (Gemini 3.1 Flash Live), rồi `gemini-3.8-live`, cuối cùng `gemini-2.5-flash-native-audio-preview-12-2025` (bản cũ, rẻ hơn).
 - Giữ kết nối cho cả cuộc trò chuyện nên Gemini nhớ câu trước. Máy chủ cắt kết nối sau ~10 phút, sketch tự nối lại ở câu hỏi sau (mất trí nhớ cuộc trò chuyện).
 - `LIVE_TEXT_MODE 1` = xin trả chữ thẳng (TEXT) thay vì giọng nói; model Live mới có thể không nhận, khi đó để 0.
 

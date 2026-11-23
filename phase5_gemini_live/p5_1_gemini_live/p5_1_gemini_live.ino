@@ -11,6 +11,7 @@
 static const char *LIVE_MODELS[] = {
     "gemini-3.1-flash-live-preview",  // "Gemini 3.1 Flash Live" trong AI Studio
     "gemini-3.8-live",                // bản Google khuyên dùng mới nhất
+    "gemini-2.5-flash-native-audio-preview-12-2025",  // bản cũ, rẻ hơn (trên Vertex AI tên là gemini-live-2.5-flash-native-audio)
 };
 // 0 = AUDIO + chép lời (cách tài liệu hướng dẫn); 1 = xin trả chữ thẳng (TEXT), model nào không hỗ trợ sẽ báo lỗi.
 #define LIVE_TEXT_MODE 0
