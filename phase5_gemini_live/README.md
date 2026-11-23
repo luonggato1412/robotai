@@ -21,8 +21,7 @@ ESP32 gửi câu hỏi (gõ ở Serial Monitor) lên Gemini qua HTTPS và in câ
 |---|---|
 | `HTTP 400` / `403` | Key sai hoặc chưa dán |
 | `HTTP 404` | Model đã đổi tên, sửa `GEMINI_MODEL` |
-| `HTTP 429` | Hết hạn mức miễn phí (theo phút/ngày), đợi rồi thử lại |
-| `HTTP 503` | Model quá tải (hay gặp giờ cao điểm). Sketch tự thử lại bằng `gemini-flash-lite-latest` |
+| `HTTP 429` / `503` | Model hết lượt hoặc quá tải (hay gặp giờ cao điểm). Sketch tự chuyển model khác trong `GEMINI_MODELS`, hết danh sách thì đợi rồi thử lại tối đa 3 vòng |
 | `HTTP -1` / `-11` | Mất mạng hoặc quá thời gian chờ |
 
 Ghi chú: bản thử dùng `setInsecure()` (không kiểm chứng chỉ máy chủ) cho đơn giản; bản Gemini Live sau sẽ gắn chứng chỉ gốc.

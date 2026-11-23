@@ -11,10 +11,11 @@
 #define GEMINI_API_KEY "DAN-KEY-VAO-DAY"
 
 // Đổi model ở đây nếu Google ngừng hỗ trợ (xem https://ai.google.dev/gemini-api/docs/models)
-// Model chính quá tải (HTTP 503) thì tự hỏi lại bằng model dự phòng (bản Lite, ít bị nghẽn hơn).
-#define GEMINI_MODEL          "gemini-flash-latest"
-#define GEMINI_MODEL_FALLBACK "gemini-flash-lite-latest"
-#define GEMINI_URL(m) "https://generativelanguage.googleapis.com/v1beta/models/" m ":generateContent"
+// Thử lần lượt từng model; model nào quá tải (503) / hết lượt (429) thì chuyển model sau.
+// Hết danh sách thì đợi rồi thử lại cả vòng (tối đa GEMINI_ROUNDS vòng).
+// Bản Lite đứng đầu: nhanh, ít bị nghẽn, đủ cho robot trò chuyện.
+static const char *GEMINI_MODELS[] = {"gemini-flash-lite-latest", "gemini-flash-latest", "gemini-3.5-flash"};
+#define GEMINI_ROUNDS 3
 static const char *PERSONA =
     "Bạn là Chú xe tăng tí hon, một robot nhỏ vui tính. Trả lời bằng tiếng Việt, ngắn gọn 1-3 câu.";
 
@@ -64,7 +65,9 @@ String extractText(const String &body) {
   return out;
 }
 
-String askGemini(const String &question, const char *url) {
+// Trả "" nếu model quá tải / hết lượt (để thử model khác), còn lại trả câu trả lời hoặc "[Lỗi] ...".
+String askGemini(const String &question, const char *model) {
+  String url = String("https://generativelanguage.googleapis.com/v1beta/models/") + model + ":generateContent";
   WiFiClientSecure tls;
   tls.setInsecure();  // bản thử: không kiểm chứng chỉ (đơn giản, chạy được cả trên Wokwi)
   HTTPClient http;
@@ -78,12 +81,11 @@ String askGemini(const String &question, const char *url) {
   int code = http.POST(req);
   String body = http.getString();
   http.end();
-  Serial.printf("(HTTP %d, %lu ms)\n", code, (unsigned long)(millis() - t0));
-  if (code == 503) return "";  // quá tải -> để loop() thử model dự phòng
+  Serial.printf("(%s: HTTP %d, %lu ms)\n", model, code, (unsigned long)(millis() - t0));
+  if (code == 503 || code == 429 || code == 500) return "";
   if (code != 200) {
     if (code == 400 || code == 403) Serial.println("Kiểm tra lại GEMINI_API_KEY.");
-    if (code == 404) Serial.println("Model không còn, đổi GEMINI_MODEL.");
-    if (code == 429) Serial.println("Hết hạn mức miễn phí, đợi một lát rồi thử lại.");
+    if (code == 404) Serial.println("Model không còn, sửa danh sách GEMINI_MODELS.");
     return "[Lỗi] " + body.substring(0, 400);
   }
   String text = extractText(body);
@@ -112,11 +114,17 @@ void loop() {
   q.trim();
   if (!q.length()) return;
   Serial.println("Bạn: " + q);
-  String a = askGemini(q, GEMINI_URL(GEMINI_MODEL));
-  if (!a.length()) {
-    Serial.println("Model chính đang quá tải, thử " GEMINI_MODEL_FALLBACK "...");
-    a = askGemini(q, GEMINI_URL(GEMINI_MODEL_FALLBACK));
-    if (!a.length()) a = "[Lỗi] Gemini đang quá tải (HTTP 503), thử lại sau ít phút.";
+  String a;
+  for (int round = 0; round < GEMINI_ROUNDS && !a.length(); round++) {
+    if (round) {
+      Serial.printf("Mọi model đang bận, đợi %d s rồi thử lại...\n", 3 * round);
+      delay(3000 * round);
+    }
+    for (const char *m : GEMINI_MODELS) {
+      a = askGemini(q, m);
+      if (a.length()) break;
+    }
   }
+  if (!a.length()) a = "[Lỗi] Gemini đang quá tải, thử lại sau ít phút.";
   Serial.println("Robot: " + a + "\n");
 }
