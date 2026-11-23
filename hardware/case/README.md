@@ -47,8 +47,8 @@ Trục: x trái(−)/phải(+), y sau(−)/trước(+), z lên; đáy xích ở 
 | ST7789 1.54" | PCB 31.5 × 39.3 + kính 27.8 | trong đầu, mặt kính cách cửa mặt ~4 mm |
 | Vòng WS2812 **8 LED** | Ø32 / Ø18 | dưới nắp tản sáng đỉnh đầu |
 | BH1750 (GY-302) | 18.5 × 13.9 × 3 | ngay dưới lỗ giữa vòng LED |
-| Khung gầm + 2 xích | tấm 51 × 92 × 3, xích 14 rộng | dưới thân, bắt 4 vít vào lỗ sàn |
-| 2× N20 | 12 × 10 × 24 | trong gầm, phía sau, trục ra bánh xích |
+| Khung gầm | tấm 78 × 92 × 3 + 2 tấm hông 3 × 92 × 28 | dưới thân, bắt 4 vít vào lỗ sàn; tấm hông giữ trục bánh |
+| 2× N20 | 12 × 10 × 24, trục Ø3 × 10 | trong gầm phía sau, nằm ngang, trục xuyên tấm hông vào bánh chủ động |
 | 2× TCRT5000 | 10 × 6 × 7 | giá dưới mũi, cách đất ~4 mm |
 
 ### Chỗ chưa ổn
@@ -59,3 +59,19 @@ Trục: x trái(−)/phải(+), y sau(−)/trước(+), z lên; đáy xích ở 
 5. **Màn hình** chỉ lọt ở đúng độ cao giữa đầu, kính lùi sau cửa mặt ~4 mm: nên in thêm khung đệm.
 6. **TCRT5000** không đặt dưới sàn thân được (cách đất 41 mm, quá xa); cần giá gắn ở mũi khung gầm, cách đất 2–8 mm.
 7. Khe nhỏ dưới cửa cảm biến (10 × 3 mm, z 47–50) chưa dùng.
+
+## Cụm bánh xích (23/11/2026)
+Mỗi bên (đối xứng trái/phải), nằm ngoài vỏ, x = ±40…56:
+
+| Chi tiết | Kích thước (mm) | Vị trí tâm (y, z) |
+|---|---|---|
+| Bánh chủ động (sau) | Ø33 × 14, 12 răng, moay-ơ Ø10, lỗ trục D 3 sâu 7.5 | (−39, 21), gắn thẳng trục N20 |
+| Bánh dẫn hướng (trước) | Ø33 × 14, 2 vành Ø33, giữa Ø30 | (+39, 21), trục M3 |
+| 2 bánh đỡ | Ø20 × 14 | (±11, 14), trục M3 |
+| Con lăn trên | Ø10 × 14 | (0, 33), đỡ dải xích trên |
+| Dải xích | dày 2.5, rộng 16, 40 gân bám cao 1.5 (in TPU 95A) | ôm bánh chủ động + dẫn hướng |
+
+- **Kích thước cả xe: 120 (dài) × 112 (rộng) × 158 (cao) mm**, khoảng sáng gầm ~8 mm dưới tấm hông.
+- Kiểm tra va chạm: các bánh, dải xích, N20, khung gầm không chạm nhau và không chạm vỏ (chỉ còn lỗi SG90 ↔ đĩa cổ ở trên).
+- Chu vi dải xích (mặt trung bình) ≈ 4 × 39 + 2π × 18.25 ≈ 271 mm. Nên in dải dài hơn ~1–2 mm rồi chỉnh bằng lỗ trục bánh dẫn hướng dạng rãnh (căng xích).
+- Bánh chủ động Ø33 với N20 ~300 v/ph cho tốc độ ~0.5 m/s.

@@ -54,15 +54,81 @@ P["ST7789_1in54"] = (uni(box(-13.9, 13.9, _yg - 2.2, _yg, _zg - 13.9, _zg + 13.9
                          box(-15.75, 15.75, _yg - 3.8, _yg - 2.2, _zg - 23.15, _zg + 16.15)), "black", "PCB 31.5×39.3 + kính 27.8×27.8")
 P["WS2812_vong12"] = (cq.Solid.makeCylinder(16, 3.2, cq.Vector(0, 15, 148)).cut(cq.Solid.makeCylinder(9, 3.2, cq.Vector(0, 15, 148))), "white", "vòng 8 LED Ø32/Ø18×3.2 (vòng 12 LED Ø37 vướng màn hình)")
 P["BH1750"] = (box(-9.25, 9.25, 8.05, 21.95, 144.5, 147.5), "green", "GY-302 18.5×13.9×3, dưới lỗ vòng LED")
-# ---- Gầm (ngoài vỏ, khung xích) ----
-def track(sx):
-    x0, x1 = (26, 40) if sx > 0 else (-40, -26)
-    return uni(box(x0, x1, -34, 34, 0, 32), cyl(16, 14, (x0, -34, 16), (1, 0, 0)), cyl(16, 14, (x0, 34, 16), (1, 0, 0)))
-P["xich_trai"] = (track(-1), "dimgray", "xích 14 rộng, bánh Ø32")
-P["xich_phai"] = (track(1), "dimgray", "xích 14 rộng, bánh Ø32")
-P["khung_gam"] = (uni(box(-25.5, 25.5, -46, 46, 33, 36), *[cyl(2.5, 5, (sx * 31, sy * 42, 36), (0, 0, 1)) for sx in (-1, 1) for sy in (-1, 1)]), "silver", "tấm gầm 51×92×3 + 4 trụ M3 vào lỗ sàn")
-P["N20_trai"] = (box(-26, -2, -40, -28, 11, 21), "gold", "N20 12×10×24 (+trục 10)")
-P["N20_phai"] = (box(2, 26, -40, -28, 11, 21), "gold", "N20 12×10×24 (+trục 10)")
+# ---- Gầm + cụm bánh xích (ngoài vỏ) ----
+# Mỗi bên: bánh chủ động (sau, gắn N20) + bánh dẫn hướng (trước) Ø33, 2 bánh đỡ Ø20, 1 con lăn trên Ø10,
+# dải xích dày 2.5 rộng 16 + gân bám 1.5. Tổng xe ~120 (dài) × 112 (rộng) mm, đáy gân ở z = 0.
+import math
+YW, ZW = 39.0, 21.0            # tâm bánh chủ động/dẫn hướng: y = ∓YW, z = ZW
+RI, TB, TG = 17.0, 2.5, 1.5    # bán kính trong dải xích, độ dày dải, cao gân
+XT0, XT1 = 40.0, 56.0          # dải xích theo x (bên phải; bên trái lấy đối xứng)
+XP0, XP1 = 36.0, 39.0          # tấm hông khung gầm
+YR, ZR, RR = 11.0, ZW - RI + 10, 10.0   # bánh đỡ: y = ±YR, bán kính 10, tì mặt trong dải dưới
+ZT, RT = ZW + RI - 5, 5.0               # con lăn trên ở y = 0
+
+def mx(sx, x0, x1):  # khoảng x theo bên
+    return (x0, x1) if sx > 0 else (-x1, -x0)
+
+def cx(r, sx, x0, x1, y, z):  # trụ trục x
+    a, b = mx(sx, x0, x1)
+    return cyl(r, b - a, (a, y, z), (1, 0, 0))
+
+def stadium(sx, r):
+    a, b = mx(sx, XT0, XT1)
+    return uni(box(a, b, -YW, YW, ZW - r, ZW + r), cyl(r, b - a, (a, -YW, ZW), (1, 0, 0)), cyl(r, b - a, (a, YW, ZW), (1, 0, 0)))
+
+def track_band(sx):
+    band = stadium(sx, RI + TB).cut(stadium(sx, RI))
+    a, b = mx(sx, XT0, XT1)
+    L = 4 * YW + 2 * math.pi * (RI + TB); n = 40; ro = RI + TB
+    g = []
+    for i in range(n):
+        t = i * L / n
+        if t < 2 * YW: y, z, ang = -YW + t, ZW - ro, 0                    # đoạn dưới, đi về trước
+        elif t < 2 * YW + math.pi * ro:
+            ang = (t - 2 * YW) / ro; y, z = YW + ro * math.sin(ang), ZW - ro * math.cos(ang)
+            ang = math.degrees(ang)
+        elif t < 4 * YW + math.pi * ro: y, z, ang = YW - (t - 2 * YW - math.pi * ro), ZW + ro, 180
+        else:
+            ang = (t - 4 * YW - math.pi * ro) / ro; y, z = -YW - ro * math.sin(ang), ZW + ro * math.cos(ang)
+            ang = 180 + math.degrees(ang)
+        gb = cq.Workplane().box(b - a, 2.0, TG + 0.2).translate(((a + b) / 2, 0, -(TG / 2) + 0.1)).val()
+        g.append(gb.rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), ang).translate(cq.Vector(0, y, z)))
+    return uni(band, *g)
+
+def sprocket(sx):  # bánh chủ động: thân Ø30 + 12 răng tới Ø33, moay-ơ Ø10 thò vào trong tới tấm hông
+    body = cx(15, sx, 41, 55, -YW, ZW)
+    teeth = [cq.Workplane().box(14, 3, 3).translate(((48 if sx > 0 else -48), 0, 15)).val()
+             .rotate(cq.Vector(0, 0, 0), cq.Vector(1, 0, 0), k * 30).translate(cq.Vector(0, -YW, ZW)) for k in range(12)]
+    return uni(body, cx(5, sx, 39.5, 41, -YW, ZW), *teeth).cut(cx(1.5, sx, 39.5, 47, -YW, ZW))  # lỗ trục sâu 7.5
+
+def idler(sx):  # bánh dẫn hướng: Ø33 có 2 vành, giữa lõm Ø30 để gân dẫn của xích chạy
+    return uni(cx(16.5, sx, 41, 43, YW, ZW), cx(15, sx, 43, 53, YW, ZW), cx(16.5, sx, 53, 55, YW, ZW), cx(5, sx, 39.5, 41, YW, ZW))
+
+def road_wheels(sx):
+    return uni(*[cx(RR, sx, 41, 55, y, ZR) for y in (-YR, YR)], *[cx(3, sx, 39.5, 41, y, ZR) for y in (-YR, YR)])
+
+def top_roller(sx):
+    return uni(cx(RT, sx, 41, 55, 0, ZT), cx(2.5, sx, 39.5, 41, 0, ZT))
+
+def n20(sx):  # N20: hộp số 12×10×9 + motor 12×10×15, trục Ø3 dài 10 xuyên tấm hông vào moay-ơ bánh chủ động
+    a, b = mx(sx, 12, 36)
+    return uni(box(a, b, -YW - 6, -YW + 6, ZW - 5, ZW + 5), cx(1.5, sx, 36, 46, -YW, ZW))
+
+def side_plate(sx):  # tấm hông 3 mm giữ trục các bánh, lỗ trục bánh chủ động Ø4
+    a, b = mx(sx, XP0, XP1)
+    pl = box(a, b, -46, 46, 8, 36).cut(cx(2, sx, XP0, XP1, -YW, ZW))
+    return pl
+
+khung = uni(box(-39, 39, -46, 46, 33, 36), side_plate(-1), side_plate(1),
+            *[cyl(2.5, 5, (sx * 31, sy * 42, 36), (0, 0, 1)) for sx in (-1, 1) for sy in (-1, 1)])
+P["khung_gam"] = (khung, "silver", "tấm gầm 78×92×3 + 2 tấm hông 3×92×28 + 4 trụ M3 vào lỗ sàn")
+for sx, ten in ((-1, "trai"), (1, "phai")):
+    P[f"N20_{ten}"] = (n20(sx), "gold", "N20 12×10×24, trục Ø3×10 ra bánh chủ động")
+    P[f"banh_chu_dong_{ten}"] = (sprocket(sx), "darkorange", "Ø33 × 14, 12 răng, moay-ơ lỗ D 3 mm")
+    P[f"banh_dan_huong_{ten}"] = (idler(sx), "orange", "Ø33 × 14, 2 vành, trục M3")
+    P[f"banh_do_{ten}"] = (road_wheels(sx), "peru", "2× Ø20 × 14, trục M3")
+    P[f"con_lan_tren_{ten}"] = (top_roller(sx), "peru", "Ø10 × 14, đỡ dải xích trên")
+    P[f"xich_{ten}"] = (track_band(sx), "dimgray", "dải dày 2.5 rộng 16, 40 gân bám 1.5 (TPU)")
 P["TCRT5000_trai"] = (box(-16, -6, 40, 46, 4, 11), "cyan", "10×6×7 trên giá mũi, cách đất ~4 mm")
 P["TCRT5000_phai"] = (box(6, 16, 40, 46, 4, 11), "cyan", "10×6×7 trên giá mũi, cách đất ~4 mm")
 
@@ -99,7 +165,7 @@ def render(case):
             v, t = s.tessellate(0.5, 0.5)
             tri = [[(v[k].x, v[k].y, v[k].z) for k in f] for f in t]
             ax.add_collection3d(Poly3DCollection(tri, facecolor=col, edgecolor=(0, 0, 0, 0.02 if col[3] < 0.5 else 0.15), linewidths=0.2))
-        ax.set_xlim(-60, 60); ax.set_ylim(-60, 60); ax.set_zlim(0, 160); ax.set_box_aspect((120, 120, 160))
+        ax.set_xlim(-65, 65); ax.set_ylim(-65, 65); ax.set_zlim(0, 160); ax.set_box_aspect((130, 130, 160))
         ax.view_init(el, az); ax.set_axis_off()
         ax.set_title("nhìn phía sau" if i == 0 else "nhìn phía trước")
     plt.tight_layout(); plt.savefig(HERE / "robot_lap_linh_kien.png"); print("Đã ghi PNG")
