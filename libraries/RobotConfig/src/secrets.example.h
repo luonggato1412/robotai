@@ -8,3 +8,7 @@
 // Nếu không vào được Wi-Fi nhà, robot tự phát Wi-Fi riêng:
 #define AP_SSID        "XeTang-AI"
 #define AP_PASSWORD    "xetang123"
+// Server riêng (bước 5.2, server/robot_server.py): IP máy tính chạy server (server in ra khi khởi động).
+#define SERVER_HOST    "192.168.1.100"
+#define SERVER_PORT    8765
+#define ROBOT_TOKEN    "xetang-bi-mat"  // giống ROBOT_TOKEN trong server/.env

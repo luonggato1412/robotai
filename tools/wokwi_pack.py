@@ -66,9 +66,18 @@ NET_DIAGRAM = """{
 """
 
 
+SERVER_SECRETS = """// Wokwi: Wi-Fi gia lap. host.wokwi.internal = may tinh dang chay Wokwi (VS Code), noi chay server/robot_server.py
+#define WIFI_SSID      "Wokwi-GUEST"
+#define WIFI_PASSWORD  ""
+#define SERVER_HOST    "host.wokwi.internal"
+#define SERVER_PORT    8765
+#define ROBOT_TOKEN    "xetang-bi-mat"  // giong ROBOT_TOKEN trong server/.env\n"""
+
+
 def build_net_sketch(text):
     inc = '#include "RobotSecrets.h"'
-    return HEADER + "\n".join(NET_SECRETS.rstrip() if l.startswith(inc) else l for l in text.splitlines()) + "\n"
+    sec = SERVER_SECRETS if "SERVER_HOST" in text else NET_SECRETS
+    return HEADER + "\n".join(sec.rstrip() if l.startswith(inc) else l for l in text.splitlines()) + "\n"
 
 
 def toml(name, forward=True):
