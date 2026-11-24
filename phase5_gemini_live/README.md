@@ -55,3 +55,6 @@ Gemini Live là kiểu nói chuyện "trực tiếp": giữ một kết nối We
 | `1011 ...` | Hết hạn mức hoặc quá tải (gói miễn phí hay gặp với model preview). Đợi vài phút, xem **Rate limits** trong AI Studio |
 | `1008 ... not found` / `not supported` | Tên model đã đổi, sửa `LIVE_MODELS` |
 | `Bắt tay WebSocket lỗi` | Mạng chặn hoặc sai địa chỉ |
+
+## Bước 5.2: `p5_2_robot_server` — nói chuyện qua server riêng
+Robot không gọi thẳng Google nữa mà nối tới `server/robot_server.py` chạy trên máy tính (cùng Wi-Fi). Server giữ API key, tính cách, trí nhớ, gọi hàm cử động và AI dự phòng. Cách chạy từng bước: [server/README.md](../server/README.md).
