@@ -164,6 +164,23 @@ int readMessage() {
   }
 }
 
+// Đọc 1 dòng HTTP (bỏ \r), chờ tối đa timeoutMs. "" nếu hết giờ / dòng trống.
+String readLine(uint32_t timeoutMs) {
+  String l;
+  uint32_t t0 = millis();
+  while (millis() - t0 < timeoutMs) {
+    if (!ws.available()) {
+      if (!ws.connected()) break;
+      delay(2);
+      continue;
+    }
+    char c = ws.read();
+    if (c == '\n') return l;
+    if (c != '\r') l += c;
+  }
+  return l;
+}
+
 // ---------- Gemini Live ----------
 // Giải thích mã đóng kết nối hay gặp (rx.msg = "<mã> <lý do>").
 void closeHint(const String &m) {
@@ -181,11 +198,18 @@ bool connectLive(const char *model) {
   ws.print(String("GET ") + LIVE_PATH + GEMINI_API_KEY + " HTTP/1.1\r\nHost: " LIVE_HOST "\r\n"
            "Upgrade: websocket\r\nConnection: Upgrade\r\n"
            "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n");
-  ws.setTimeout(10);  // giây, cho readStringUntil
-  String status = ws.readStringUntil('\n');
+  // Tự đọc từng dòng với thời gian chờ riêng (setTimeout của core 3.x tính bằng ms, dễ nhầm; Wokwi chậm).
+  String status = readLine(20000);
+  if (!status.length()) {
+    char err[128] = "";
+    int e = ws.lastError(err, sizeof(err));
+    Serial.printf("Máy chủ không trả lời bắt tay (TLS %d: %s, còn kết nối: %d).\n", e, err, ws.connected());
+    ws.stop();
+    return false;
+  }
   while (ws.connected()) {  // bỏ qua các dòng header
-    String l = ws.readStringUntil('\n');
-    if (l == "\r" || l.length() == 0) break;
+    String l = readLine(5000);
+    if (l.length() == 0) break;
   }
   if (status.indexOf(" 101") < 0) { Serial.println("Bắt tay WebSocket lỗi: " + status); ws.stop(); return false; }
 
